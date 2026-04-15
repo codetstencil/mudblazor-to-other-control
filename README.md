@@ -1,1 +1,32 @@
 # ChinookManager
+
+This is a simple application that allows users to manage **Artists**, **Albums**, and **Album Views** with full CRUD (Create, Read, Update, Delete) functionality.
+
+---
+
+## 🚀 Features
+- **Login Page**: Secure authentication before accessing the app.
+- **Artist Management**: Add, edit, delete, and view artists.
+- **Album Management**: Create, update, delete, and view albums.
+- **Album View**: Browse and manage album details.
+
+---
+
+## 🔑 Login Credentials
+The login credentials will be provided in this repository. Please check the attached documentation or configuration files for details.
+
+---
+
+## 🗄️ Database Setup
+This project uses **SQL Server** as the database. A `.bak` file is included in the repository to restore the database.
+
+### ⚠️ Version Compatibility
+If you encounter errors related to SQL Server version differences (e.g., version 16 vs. 15):
+1. Use **Docker** to spin up a SQL Server instance of the required version.
+2. Update the **connection string** in `appsettings.json` to point to your SQL Server instance.
+
+Example connection string in `appsettings.json`:
+```json
+"ConnectionStrings": {
+  "DefaultConnection": ""
+}
