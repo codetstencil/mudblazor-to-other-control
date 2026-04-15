@@ -1,0 +1,228 @@
+@page "/artists"
+@using Microsoft.AspNetCore.Authorization
+@using Application.DTOs
+@attribute [Authorize]
+<PageTitle>Artist</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudPaper Class="pa-4">
+        <MudGrid>
+            <MudItem xs="6">
+                <MudText Typo="Typo.h5">Artists</MudText>
+            </MudItem>
+            <MudItem xs="6" Class="d-flex justify-end">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="async () => await HandleNewClick()"
+                           StartIcon="@Icons.Material.Filled.Add">
+                    New Artist
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+
+        <MudTextField @bind-Value="_searchTerm"
+                      Label="Search"
+                      Class="mt-4"
+                      Immediate="true"
+                      DebounceInterval="500"
+                      OnDebounceIntervalElapsed="@(async () => await HandleSearch(_searchTerm))"
+                      Placeholder="Search artists..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" />
+
+    <div class="table-responsive">
+        <MudTable Items="@_items"
+                  Dense="true"
+                  Hover="true"
+                  Bordered="true"
+                  Striped="true"
+                  Loading="@_isLoading"
+                  SortLabel="Sort by"
+                  T="ArtistDto"
+                  ServerData="@(new Func<TableState, CancellationToken, Task<TableData<ArtistDto>>>(Reload))"
+                  OnRowClick="HandleRowClick"
+                  RowStyleFunc="@((item, i) => "cursor-pointer")"
+                  @ref="_tableRef">
+
+            <HeaderContent>
+                <MudTh>
+                <MudTableSortLabel SortLabel="Name" T="ArtistDto">
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudText>Name</MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Color="Color.Info" />
+                    </MudStack>
+                </MudTableSortLabel>
+                </MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+
+            <RowTemplate>
+                <MudTd DataLabel="Name">@context.Name</MudTd>
+
+                <MudTd>
+                    <MudStack Row="true">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Color="Color.Primary"
+                                       Size="Size.Small"
+                                       OnClick="@(() => HandleEditClick(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       Size="Size.Small"
+                                       OnClick="@(() => HandleDeleteClick(context))" />
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+            <NoRecordsContent>
+                <MudText>No artists found</MudText>
+            </NoRecordsContent>
+            <LoadingContent>
+                <MudText>Loading...</MudText>
+            </LoadingContent>
+        </MudTable>
+    </div>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private IEnumerable<ArtistDto>? _items;
+    private string _searchTerm = "";
+    private bool _isLoading;
+    private MudTable<ArtistDto> _tableRef = null!;
+    private List<ArtistDto> _artists = [];
+            
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to initialize: {ex.Message}", Severity.Error);
+        }
+    }
+
+
+
+    private async Task<TableData<ArtistDto>> Reload(TableState state, CancellationToken cancellationToken)
+    {
+        return await TableHelpers.ServerReload<ArtistDto>(
+            state,
+            cancellationToken,
+            _searchTerm,
+            parameters => ArtistService.GetPagedAsync(parameters),
+            "Failed to load artists",
+            Snackbar,
+            isLoading => _isLoading = isLoading);
+    }
+    
+    //Click
+    private void HandleRowClick(TableRowClickEventArgs<ArtistDto> args)
+    {
+        if (args.Item == null) return;
+        _ = HandleEditClick(args.Item);
+    }
+
+    //Search
+    private async Task HandleSearch(string? value)
+    {
+        _searchTerm = value ?? "";
+        await _tableRef.ReloadServerData();
+    }
+
+    //Delete
+    private async Task HandleDeleteClick(ArtistDto artist)
+    {
+        var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+        var result = await DialogService.ShowMessageBox(
+            "Delete Artist",
+            $"Are you sure you want to delete '{artist.ArtistId}'?",
+            yesText: "Delete",
+            cancelText: "Cancel",
+            options: options);
+
+        if (result ?? false)
+        {
+            try
+            {
+                await ArtistService.DeleteAsync(artist.ArtistId);
+                await _tableRef.ReloadServerData();
+                Snackbar.Add("Artist deleted successfully", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to delete artist: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    //New
+    private async Task HandleNewClick()
+    {
+        var parameters = new DialogParameters
+        {
+            { "IsEditing", false },
+            { "Artist", null }
+
+
+        };
+
+
+        var options = new DialogOptions()
+            {
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                CloseButton = true,
+            };
+
+        var dialogRes = await (await DialogService.ShowAsync<ArtistDialog>("New Artist", parameters, options)).Result;
+
+        if (!dialogRes.Canceled)
+        {
+            try
+            {
+                if (dialogRes.Data is ArtistDto artistToSave) 
+                    await ArtistService.CreateAsync(artistToSave);
+                await _tableRef.ReloadServerData();
+                Snackbar.Add("Artist created successfully", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to create artist: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    //Edit
+    private async Task HandleEditClick(ArtistDto artist)
+    {
+        var parameters = new DialogParameters
+        {
+            { "IsEditing", true },
+            { "Artist", artist }
+
+
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<ArtistDialog>("Edit Artist", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                if (result.Data is ArtistDto artistToSave) 
+                    await ArtistService.UpdateAsync(artistToSave);
+                await _tableRef.ReloadServerData();
+                Snackbar.Add("Artist updated successfully", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to update Artist: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

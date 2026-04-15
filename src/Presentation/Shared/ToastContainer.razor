@@ -1,0 +1,84 @@
+@using Presentation.Services
+@using Microsoft.JSInterop
+@inject IToastService ToastService
+@inject IJSRuntime JS
+@implements IDisposable
+
+<style>
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+    .toast-message {
+        margin-bottom: 10px;
+        padding: 15px 20px;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        animation: slideIn 0.3s ease-out;
+    }
+    .toast-success { background-color: #4caf50; color: white; }
+    .toast-error { background-color: #f44336; color: white; }
+    .toast-info { background-color: #2196f3; color: white; }
+    .toast-warning { background-color: #ff9800; color: white; }
+
+    @@keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+</style>
+
+<div class="toast-container">
+    @foreach (var toast in _toasts)
+    {
+        <div class="toast-message toast-@toast.Type.ToString().ToLower()">
+            @toast.Message
+        </div>
+    }
+</div>
+
+@code {
+    private List<ToastMessage> _toasts = new();
+
+    protected override void OnInitialized()
+    {
+        if (ToastService is ToastService service)
+        {
+            service.OnShow += ShowToast;
+        }
+    }
+
+    private async void ShowToast(string message, ToastType type)
+    {
+        var toast = new ToastMessage { Message = message, Type = type };
+        _toasts.Add(toast);
+        await InvokeAsync(StateHasChanged);
+
+        _ = Task.Delay(3000).ContinueWith(_ =>
+        {
+            _toasts.Remove(toast);
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    public void Dispose()
+    {
+        if (ToastService is ToastService service)
+        {
+            service.OnShow -= ShowToast;
+        }
+    }
+
+    private class ToastMessage
+    {
+        public string Message { get; set; } = "";
+        public ToastType Type { get; set; }
+    }
+}

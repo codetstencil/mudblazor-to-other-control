@@ -1,0 +1,39 @@
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    @if (context.User.Identity?.IsAuthenticated != true)
+                    {
+                        <RedirectToLogin />
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.h5" Color="Color.Error" Class="ma-4">
+                            Not Authorized
+                        </MudText>
+                        <MudText Class="ma-4">
+                            You are not authorized to access this resource.
+                        </MudText>
+                    }
+                </NotAuthorized>
+                <Authorizing>
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                </Authorizing>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <MudContainer MaxWidth="MaxWidth.Small" Class="mt-4">
+                    <MudText Typo="Typo.h5" Color="Color.Error">Page Not Found</MudText>
+                    <MudText Class="mt-4">Sorry, there's nothing at this address.</MudText>
+                    <MudButton Href="" Color="Color.Primary" Variant="Variant.Filled" Class="mt-4">
+                        Return Home
+                    </MudButton>
+                </MudContainer>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

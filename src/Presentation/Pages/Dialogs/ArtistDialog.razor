@@ -1,0 +1,96 @@
+@using Application.DTOs
+@using Presentation.Shared
+@inject ISnackbar Snackbar
+
+<MudDialogProvider />
+<MudDialog>
+    <DialogContent>
+        <MudContainer MaxWidth="MaxWidth.Small" Class="pa-4">
+            <EditForm Model="ArtistModel" OnValidSubmit="SubmitForm">
+                <DataAnnotationsValidator />
+                <MudTextField @bind-Value="ArtistModel.Name"
+                                Label="Name"
+                                Required="true"
+                                RequiredError="Please enter a Name"
+                                Class="mb-4" />
+
+                <DialogActions OnCancel="Cancel" 
+                               OnSave="HandleSave"
+                               IsEditing="IsEditing" 
+                               IsDisabled="false" />
+            </EditForm>
+        </MudContainer>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+        [Parameter] public bool IsEditing { get; set; }
+    [Parameter] public ArtistDto? Artist { get; set; }
+
+
+    private ArtistDto? ArtistModel { get; set; }  = new();
+
+    protected override void OnInitialized()
+    {
+    // Debug: DialogOnInitialized.GenerateCode()
+        if (!IsEditing || Artist == null) return;
+        ArtistModel = new ArtistDto
+        {
+            ArtistId = Artist.ArtistId,
+            Name = Artist.Name,
+        };
+        // Assign Lookup
+
+    }
+        
+
+ 
+
+    private bool IsValid() =>
+        true;
+
+    private void ShowValidationErrors()
+    {
+        var errors = new List<string>();
+        
+        if (errors.Any())
+        {
+            var errorMessage = string.Join(", ", errors);
+            Snackbar.Add($"Validation failed: {errorMessage}", Severity.Error);
+        }
+    }
+
+         
+    private Task SubmitForm()
+    {
+        if (!IsValid())
+            return Task.CompletedTask;
+    
+        var artistToSave = new ArtistDto
+        {
+            ArtistId = IsEditing ? ArtistModel.ArtistId : 0,
+            Name = ArtistModel!.Name
+        };
+    
+        MudDialog?.Close(DialogResult.Ok(artistToSave));
+        return Task.CompletedTask;
+    }
+
+
+
+private Task HandleSave()
+    {
+        if (!IsValid())
+        {
+            ShowValidationErrors();
+            return Task.CompletedTask;
+        }
+
+        return SubmitForm();
+    }
+
+    private void Cancel() => MudDialog?.Close(DialogResult.Cancel());
+}
+

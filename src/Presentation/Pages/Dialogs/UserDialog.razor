@@ -1,0 +1,79 @@
+@using Application.DTOs
+@using Presentation.Shared
+
+<MudDialog>
+    <DialogContent>
+        <MudContainer MaxWidth="MaxWidth.Small" Class="pa-4">
+            <EditForm Model="UserModel" OnValidSubmit="SubmitForm">
+                <DataAnnotationsValidator />
+                <MudTextField @bind-Value="UserModel.Username"
+                Label="Username"
+                Required="true"
+                RequiredError="Please enter a username"
+                Class="mb-4" />
+
+                <MudTextField @bind-Value="UserModel.Email"
+                              Label="Email"
+                              Required="true"
+                              RequiredError="Please enter your email"
+                              Class="mb-4" />
+
+                <MudTextField @bind-Value="UserModel.Password"
+                Label="Password"
+                Required="@(!IsEditing)"
+                RequiredError="Please enter a password"
+                InputType="InputType.Password"
+                Class="mb-4" />
+
+                <DialogActions OnCancel="Cancel" 
+                               IsEditing="IsEditing" 
+                               IsDisabled="@(!IsValid())" />
+            </EditForm>
+        </MudContainer>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public bool IsEditing { get; set; }
+    [Parameter] public UserDto? User { get; set; }
+    private UserDto UserModel { get; set; } = new();
+
+    protected override void OnInitialized()
+    {
+        if (IsEditing && User != null)
+        {
+            UserModel = new UserDto
+           {
+               Id = User.Id,
+               Username = User.Username,
+               Password = User.Password,
+               Email = User.Email
+           };
+        }
+    }
+
+    private bool IsValid() =>
+        !string.IsNullOrWhiteSpace(UserModel.Username?.Trim()) &&
+        !string.IsNullOrWhiteSpace(UserModel.Email?.Trim()) &&
+        (!string.IsNullOrWhiteSpace(UserModel.Password) || IsEditing);
+
+    private async void SubmitForm()
+    {
+        if (!IsValid())
+            return;
+
+        var userToSave = new UserDto
+            {
+                Id = IsEditing ? UserModel.Id : "",
+                Username = UserModel.Username!.Trim(),
+                Password = UserModel.Password,
+                Email = UserModel.Email!.Trim()
+            };
+
+        MudDialog?.Close(DialogResult.Ok(userToSave));
+    }
+
+    private void Cancel() => MudDialog?.Close(DialogResult.Cancel());
+}

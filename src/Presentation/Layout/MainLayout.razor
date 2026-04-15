@@ -1,0 +1,25 @@
+@inherits LayoutComponentBase
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<MudBlazorTheme />
+<div class="page">
+    <div class="">
+        <NavMenu />
+    </div>
+    <main style="display: flex; flex-direction: column; height: 100vh;">
+        <div class="top-row px-4">
+            <AuthorizeView>
+                <Authorized>
+                    <a href="/logout">Logout</a>
+                </Authorized>
+                <NotAuthorized>
+                    <a href="/login">Login</a>
+                </NotAuthorized>
+            </AuthorizeView>
+            
+        </div>
+        <article class="content px-4" style="flex: 1; overflow-y: auto;padding:0px !important;">
+            @Body
+        </article>
+    </main>
+</div>

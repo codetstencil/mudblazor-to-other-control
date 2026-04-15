@@ -1,0 +1,144 @@
+@using Application.DTOs
+@using Presentation.Shared
+@inject ISnackbar Snackbar
+
+<MudDialogProvider />
+<MudDialog>
+    <DialogContent>
+        <MudContainer MaxWidth="MaxWidth.Small" Class="pa-4">
+            <EditForm Model="AlbumModel" OnValidSubmit="SubmitForm">
+                <DataAnnotationsValidator />
+                <MudTextField @bind-Value="AlbumModel.Title"
+                                Label="Title"
+                                Required="true"
+                                RequiredError="Please enter a Title"
+                                Class="mb-4" />
+                <MudAutocomplete T="ArtistDto"
+                                Label="Artist"
+                                @bind-Value="SelectedArtist"
+                                SearchFunc="@SearchArtists"
+                                ToStringFunc="@(x => x?.Name)"
+                                MaxItems="@CountTotalArtists()"
+                                Required="true"
+                                RequiredError="Please select a artist "
+                                Clearable="true"
+                                Class="mb-4" />
+
+                <DialogActions OnCancel="Cancel" 
+                               OnSave="HandleSave"
+                               IsEditing="IsEditing" 
+                               IsDisabled="false" />
+            </EditForm>
+        </MudContainer>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public List<ArtistDto> Artists { get; set; } = [];
+        [Parameter] public bool IsEditing { get; set; }
+    [Parameter] public AlbumDto? Album { get; set; }
+
+
+    private AlbumDto? AlbumModel { get; set; }  = new();
+    // Debug: LookupProperty.GenerateFields()
+    private ArtistDto? _selectedArtist;
+
+        
+    // Debug: LookupProperty.GenerateProperty()
+    private ArtistDto? SelectedArtist
+    {
+        get => _selectedArtist;
+        set
+        {
+            _selectedArtist = value;
+            if (value != null)
+            {
+                AlbumModel!.ArtistId = value.ArtistId;
+            }
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+    // Debug: DialogOnInitialized.GenerateCode()
+        if (!IsEditing || Album == null) return;
+        AlbumModel = new AlbumDto
+        {
+            AlbumId = Album.AlbumId,
+            Title = Album.Title,
+            ArtistId = Album.ArtistId,
+        };
+        // Assign Lookup
+        SelectedArtist = Artists.FirstOrDefault(lookup => lookup.ArtistId == Album.ArtistId);
+
+    }
+        
+    private async Task<IEnumerable<ArtistDto>> SearchArtists(string value, CancellationToken cancellationToken)
+    {
+        await Task.Delay(1, cancellationToken);
+        return Artists.Where(x =>
+                string.IsNullOrEmpty(value) ||
+                x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase)
+        ).OrderBy(x => x.Name);
+    }
+    
+
+ 
+    private int CountTotalArtists() => Artists.Count;
+
+
+    private bool IsValid() =>
+        !string.IsNullOrWhiteSpace(AlbumModel.Title?.Trim()) &&
+            AlbumModel.ArtistId > 0;
+
+    private void ShowValidationErrors()
+    {
+        var errors = new List<string>();
+                if (string.IsNullOrWhiteSpace(AlbumModel.Title?.Trim())) 
+            errors.Add("Title is required and cannot be empty.");
+if (AlbumModel.ArtistId <= 0) 
+            errors.Add("ArtistId must be greater than 0");
+
+
+        if (errors.Any())
+        {
+            var errorMessage = string.Join(", ", errors);
+            Snackbar.Add($"Validation failed: {errorMessage}", Severity.Error);
+        }
+    }
+
+         
+    private Task SubmitForm()
+    {
+        if (!IsValid())
+            return Task.CompletedTask;
+    
+        var albumToSave = new AlbumDto
+        {
+            AlbumId = IsEditing ? AlbumModel.AlbumId : 0,
+            Title = AlbumModel!.Title,
+            ArtistId = SelectedArtist?.ArtistId ?? AlbumModel.ArtistId
+        };
+    
+        MudDialog?.Close(DialogResult.Ok(albumToSave));
+        return Task.CompletedTask;
+    }
+
+
+
+private Task HandleSave()
+    {
+        if (!IsValid())
+        {
+            ShowValidationErrors();
+            return Task.CompletedTask;
+        }
+
+        return SubmitForm();
+    }
+
+    private void Cancel() => MudDialog?.Close(DialogResult.Cancel());
+}
+

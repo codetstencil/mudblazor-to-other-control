@@ -1,0 +1,174 @@
+@page "/"
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>SaaS Home Dashboard</PageTitle>
+
+<!-- Google Fonts - Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+    /*
+         * Custom styles for the SaaS Home Dashboard
+         * These styles complement Tailwind CSS for specific layout and design elements.
+         */
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f0f4f8; /* Light gray background */
+        min-height: 100vh; /* Ensure body takes full viewport height */
+        width: 100vw; /* Ensure body takes full viewport width */
+        margin: 0;
+        overflow-x: hidden; /* Prevent horizontal scrolling */
+    }
+
+    .container-styles { /* Renamed to avoid conflict with Tailwind's 'container' class if used */
+        background-color: #ffffff;
+        border-radius: 1.5rem; /* More rounded corners */
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        gap: 2rem; /* Space between sections */
+        /* Tailwind classes handle width and padding directly on the div now */
+    }
+
+    .hero-section {
+        text-align: center;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #e2e8f0; /* Light border */
+    }
+
+    .link-grid {
+        display: grid;
+        grid-template-columns: 1fr; /* Single column by default for mobile */
+        gap: 1.5rem; /* Space between grid items */
+    }
+    /* Responsive grid: 2 columns for small screens, 5 columns for large screens */
+    @@media (min-width: 640px) { /* Small screens and up */
+        .link-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (min-width: 1024px) { /* Large screens and up */
+        .link-grid {
+            grid-template-columns: repeat(5, 1fr); /* 5 columns for larger screens */
+        }
+    }
+
+    .link-card {
+        background-color: #f7fafc;
+        border-radius: 0.75rem; /* Rounded corners for cards */
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.2s ease-in-out;
+        border: 1px solid #e2e8f0;
+    }
+
+        .link-card:hover {
+            background-color: #edf2f7;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        }
+
+        .link-card a {
+            font-weight: 600;
+            color: #3b82f6; /* Blue for links */
+            text-decoration: none;
+            display: block;
+        }
+
+            .link-card a:hover {
+                color: #2563eb; /* Darker blue on hover */
+            }
+
+        .link-card p {
+            color: #64748b; /* Gray text for description */
+            font-size: 0.875rem; /* Smaller font for description */
+            margin-top: 0.5rem;
+        }
+</style>
+
+<!-- Main content for the SaaS Home Dashboard -->
+<div class="container-styles w-full max-w-screen-xl mx-auto p-6 sm:p-10">
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">Welcome to Your SaaS Dashboard</h1>
+        <p class="text-lg text-gray-600">Your central hub for managing all your services and data. Explore the options below.</p>
+    </div>
+
+    <!-- Links Grid Section -->
+    <div class="link-grid">
+        <!-- Link 1 -->
+        <div class="link-card">
+            <a href="#dashboard">Dashboard Overview</a>
+            <p>Get a quick glance at your key metrics and recent activity.</p>
+        </div>
+        <!-- Link 2 -->
+        <div class="link-card">
+            <a href="#settings">Account Settings</a>
+            <p>Manage your profile, preferences, and security settings.</p>
+        </div>
+        <!-- Link 3 -->
+        <div class="link-card">
+            <a href="#billing">Billing & Subscriptions</a>
+            <p>View your invoices, manage subscriptions, and update payment methods.</p>
+        </div>
+        <!-- Link 4 -->
+        <div class="link-card">
+            <a href="#projects">My Projects</a>
+            <p>Access and manage all your ongoing and completed projects.</p>
+        </div>
+        <!-- Link 5 -->
+        <div class="link-card">
+            <a href="#reports">Analytics & Reports</a>
+            <p>Generate detailed reports and analyze your data trends.</p>
+        </div>
+        <!-- Link 6 -->
+        <div class="link-card">
+            <a href="#team">Team Management</a>
+            <p>Invite new members, manage roles, and collaborate effectively.</p>
+        </div>
+        <!-- Link 7 -->
+        <div class="link-card">
+            <a href="#integrations">Integrations</a>
+            <p>Connect with other apps and services to streamline your workflow.</p>
+        </div>
+        <!-- Link 8 -->
+        <div class="link-card">
+            <a href="#support">Help & Support</a>
+            <p>Find answers to common questions or contact our support team.</p>
+        </div>
+        <!-- Link 9 -->
+        <div class="link-card">
+            <a href="#documentation">API Documentation</a>
+            <p>Explore our API for custom integrations and advanced usage.</p>
+        </div>
+        <!-- Link 10 -->
+        <div class="link-card">
+            <a href="#feedback">Send Feedback</a>
+            <p>Share your thoughts and suggestions to help us improve.</p>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Get the current authentication state
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // Check if the user is not authenticated
+        // The ?? true ensures that if user.Identity is null, it also evaluates to true,
+        // leading to a redirect to login.
+        if (!user.Identity?.IsAuthenticated ?? true)
+        {
+            // If not authenticated, navigate to the login page
+            Navigation.NavigateTo("/login");
+        }
+        // If authenticated, the page will simply load the dashboard content
+    }
+}
+

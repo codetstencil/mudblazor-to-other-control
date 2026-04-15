@@ -1,0 +1,12 @@
+<MudButton OnClick="OnCancel" Variant="Variant.Text" Color="Color.Default">Cancel</MudButton>
+<MudButton ButtonType="ButtonType.Submit"
+          Variant="Variant.Filled"
+          Color="Color.Primary"
+          Disabled="@IsDisabled">@(IsEditing ? "Update" : "Save")</MudButton>
+
+@code {
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback OnSave { get; set; }
+    [Parameter] public bool IsEditing { get; set; }
+    [Parameter] public bool IsDisabled { get; set; }
+}

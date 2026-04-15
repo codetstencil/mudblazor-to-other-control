@@ -1,0 +1,80 @@
+@page "/albumviews"
+@using Microsoft.AspNetCore.Authorization
+@using Application.DTOs
+@using Application.Common.Models
+@attribute [Authorize]
+<PageTitle>Album view</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudPaper Class="pa-4">
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Typo="Typo.h5">Album view</MudText>
+            </MudItem>
+        </MudGrid>
+
+        <MudTextField @bind-Value="_searchTerm"
+                      Label="Search"
+                      Class="mt-4"
+                      Immediate="true"
+                      DebounceInterval="500"
+                      OnDebounceIntervalElapsed="@(async () => await HandleSearch(_searchTerm))"
+
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" />
+
+        <MudTable Items="@_items"                                                                                                                                                                  
+                  Dense="true"
+                  Hover="true"
+                  Bordered="true"
+                  Striped="true"
+                  Loading="@_isLoading"
+                  SortLabel="Sort by"
+                  T="AlbumViewDto"
+                  ServerData="@(new Func<TableState, CancellationToken, Task<TableData<AlbumViewDto>>>(Reload))"
+                  @ref="_tableRef">
+            <HeaderContent>
+  	<MudTh><MudTableSortLabel SortLabel="[%CS_COLUMN_NAMES%]" T="AlbumViewDto">Title</MudTableSortLabel></MudTh>
+  	<MudTh><MudTableSortLabel SortLabel="[%CS_COLUMN_NAMES%]" T="AlbumViewDto">Name</MudTableSortLabel></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Title">@context.Title</MudTd>
+                <MudTd DataLabel="Name">@context.Name</MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+            <NoRecordsContent>
+                <MudText>No albumviews found</MudText>
+            </NoRecordsContent>
+            <LoadingContent>
+                <MudText>Loading...</MudText>
+            </LoadingContent>
+        </MudTable>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private IEnumerable<AlbumViewDto>? _items;
+    private string _searchTerm = "";
+    private bool _isLoading;
+    private MudTable<AlbumViewDto> _tableRef = null!;
+
+    private async Task<TableData<AlbumViewDto>> Reload(TableState state, CancellationToken cancellationToken)
+    {
+        return await TableHelpers.ServerReload<AlbumViewDto>(
+            state,
+            cancellationToken,
+            _searchTerm,
+            parameters => AlbumViewService.GetPagedAsync(parameters),
+            "Failed to load AlbumView",
+            Snackbar,
+            isLoading => _isLoading = isLoading);
+    }
+    
+    private async Task HandleSearch(string? value)
+    {
+        _searchTerm = value ?? "";
+        await _tableRef.ReloadServerData();
+    }
+}

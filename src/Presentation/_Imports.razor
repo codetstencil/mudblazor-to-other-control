@@ -1,0 +1,36 @@
+@using System.Net.Http
+@using System.Net.Http.Json
+@using Application.Services
+@using Blazored.LocalStorage
+@using Core.Entities
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.AspNetCore.Components.WebAssembly.Http
+
+@using Presentation
+@using Presentation.Layout
+@using Presentation.Pages
+@using Presentation.Pages.Dialogs
+@using Presentation.Shared
+
+@using MudBlazor
+
+@inject ISnackbar Snackbar
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILocalStorageService LocalBlazorStorage
+
+@inject IAlbumService AlbumService
+@inject IArtistService ArtistService
+@inject IAlbumViewService AlbumViewService
+
+@inject IUserService UserService
+@inject IDialogService DialogService
+
+
+
+

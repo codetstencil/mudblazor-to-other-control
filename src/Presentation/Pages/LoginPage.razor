@@ -1,0 +1,146 @@
+@page "/login"
+@using Application.DTOs
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Login</PageTitle>
+
+    <div class="bg-[#e5e7eb]" style="display:flex !important;height:100%;">
+
+        <MudItem Class="w-100">
+            <MudPaper Class="d-flex h-100" Elevation="0">
+            <div style="width: 950px; height: 100% !important;">
+                <img src="./split-screen.png" alt="Login Image" style="width: 100%; height: 100%; object-fit: cover;" />
+            </div>
+
+            <div class="p-5 d-flex flex-column justify-content-center " style="flex: 1;height:100% !important;background-color: rgba(249, 250, 251, 0.37) !important;color: #000 !important;">
+                <a href="/" class="mb-2 mx-auto">
+                    <img src="./logo.png" alt="Logo" style="width: 300px;" />
+                </a>
+                <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-2 font-semibold text-gray-900 dark:text-white">Log In</MudText>
+                <MudText Typo="Typo.body1" Align="Align.Center" Class="text-gray-700 dark:text-gray-300 mb-6">
+                    Enter your credentials to login
+                </MudText>
+                <div class="text-center mb-4">
+                    <MudText Typo="Typo.body2" Class="text-gray-600">
+                        There is a temporary admin login and password located in this file:
+                    </MudText>
+                    <MudLink Href="file:///C:\temp\CodeStencil\Project35a\AdminCredentials.txt" Target="_blank" Class="text-primary">
+                        C:\temp\CodeStencil\Project35a\AdminCredentials.txt
+                    </MudLink>
+                </div>
+                <MudForm @ref="_form" @bind-IsValid="_success">
+                    <MudTextField T="string"
+                                  Label="Username"
+                                  @bind-Value="_loginModel.Username"
+                                  Required="true"
+                                  RequiredError="Username is required"
+                                  Immediate="true"
+                                  Variant="Variant.Outlined"
+                                  Class="w-50 mx-auto"
+
+                                  />
+
+                    <MudTextField T="string"
+                                  Label="Password"
+                                  @bind-Value="_loginModel.Password"
+                                  InputType="InputType.Password"
+                                  Required="true"
+                                  RequiredError="Password is required"
+                                  Immediate="true"
+                                  Variant="Variant.Outlined"
+                                  Class="w-50 mx-auto" />
+
+                     <MudButton Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               Class="w-50 mt-2 mx-auto" 
+                                Disabled="@(!_success)"
+                               OnClick="HandleLogin">
+                         Log in 
+                     </MudButton>
+                </MudForm>
+
+                <div class="d-flex justify-center gap-2 mt-6">
+                    <MudText Typo="Typo.body1">Don't have an account yet?</MudText>
+                    <MudLink Href="/register" Class="text-primary font-medium text-base">Sign up</MudLink>
+                </div>
+
+                @* <div class="relative d-flex justify-center items-center mt-10"> *@
+                @*     <span class="bg-gray-50 dark:bg-gray-950 px-2 z-10 absolute text-sm text-gray-700 dark:text-gray-300">Or continue with</span> *@
+                @*     <hr class="w-full absolute border-gray-200 dark:border-gray-600" /> *@
+                @* </div> *@
+
+                @* <div class="d-flex flex-column align-center pt-10 gap-4"> *@
+                @*     <MudButton Variant="Variant.Outlined" *@
+                @*                Class="w-full d-flex align-items-center justify-content-center" *@
+                @*                OnClick="LoginWithGoogle"> *@
+                @*         <img class="w-4 mx-2" src="./google.png" alt="google logo" style="width: 12px; height: 12px;" /> *@
+                @*         <span class="pl-2.5">Sign in with Google</span> *@
+                @*     </MudButton> *@
+
+                @*     <MudButton Variant="Variant.Outlined" *@
+                @*                Class="w-full d-flex align-items-center justify-content-center" *@
+                @*                OnClick="LoginWithMicrosoft"> *@
+                @*         <img class="w-4 mx-2" src="./microsoft.png" alt="microsoft logo" style="width: 12px; height: 12px;" /> *@
+                @*         <span class="pl-2.5">Sign in with Microsoft</span> *@
+                @*     </MudButton> *@
+                @* </div> *@
+                </div>
+            </MudPaper>
+        </MudItem>
+    </div>
+
+
+@code {
+    private LoginDto _loginModel = new();
+    private bool _success;
+    private MudForm _form;
+
+    private bool _rememberMe = false;
+
+    private void LoginWithGoogle()
+    {
+        // TODO: Implement Google login
+    }
+
+    private void LoginWithMicrosoft()
+    {
+        // TODO: Implement Microsoft login
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Redirect if user is already logged in
+        if (await AuthService.IsAuthenticatedAsync())
+        {
+            NavigationManager.NavigateTo("/",true);
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                var result = await AuthService.LoginAsync(_loginModel);
+                if (result.IsAuthenticated && !string.IsNullOrEmpty(result.Token))
+                {
+                    var authStateProvider = (CustomAuthStateProvider)AuthStateProvider;
+                    await authStateProvider.MarkUserAsAuthenticated(result.Token);
+                    NavigationManager.NavigateTo("/",true);
+                }
+                else
+                {
+                    Snackbar.Add("Invalid username or password", Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Login failed: {ex.Message}", Severity.Error);
+        }
+    }
+}

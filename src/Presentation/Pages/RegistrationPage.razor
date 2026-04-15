@@ -1,0 +1,139 @@
+@page "/register"
+@using Application.DTOs
+@inject IUserService UserService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Register</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small">
+    <MudPaper Class="pa-4 mt-4">
+        <MudText Typo="Typo.h4" Class="mb-4">Register</MudText>
+        <MudForm @ref="_form" @bind-IsValid="@_success">
+            <MudTextField T="string"
+                          Label="Username"
+                          @bind-Value="_registerModel.Username"
+                          Required="true"
+                          RequiredError="UserName is required"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidateUsername))"
+                          Immediate="true" />
+
+            <MudTextField T="string"
+                          Label="Email"
+                          @bind-Value="_registerModel.Email"
+                          Required="true"
+                          RequiredError="Email is required"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidateEmail))"
+                          Immediate="true" />
+
+            <MudTextField T="string"
+                          Label="Password"
+                          @bind-Value="_registerModel.Password"
+                          InputType="InputType.Password"
+                          Required="true"
+                          RequiredError="Password is required"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidatePassword))"
+                          Immediate="true" />
+
+            <MudTextField T="string"
+                          Label="Confirm Password"
+                          @bind-Value="_confirmPassword"
+                          InputType="InputType.Password"
+                          Required="true"
+                          RequiredError="Please confirm your password"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidateConfirmPassword))"
+                          Immediate="true" />
+
+            <div class="d-flex justify-space-between align-center mt-6">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Disabled="@(!_success)"
+                           OnClick="HandleRegister"
+                           Class="ml-auto">
+                    Register
+                </MudButton>
+            </div>
+        </MudForm>
+
+        <MudDivider Class="my-6" />
+
+        <MudText Align="Align.Center">
+            Already have an account?
+            <MudLink Href="/login">Login here</MudLink>
+        </MudText>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private UserDto _registerModel = new();
+    private string _confirmPassword = "";
+    private bool _success;
+    private MudForm _form;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Redirect if user is already logged in
+        if (await AuthService.IsAuthenticatedAsync())
+        {
+            NavigationManager.NavigateTo("/");
+        }
+    }
+
+    private IEnumerable<string> ValidateUsername(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+            yield return "Username is required";
+        else if (username.Length < 3)
+            yield return "Username must be at least 3 characters";
+        else if (username.Length > 50)
+            yield return "Username must not exceed 50 characters";
+    }
+
+    private IEnumerable<string> ValidateEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            yield return "Email is required";
+        else if (!System.Text.RegularExpressions.Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            yield return "Invalid email format";
+    }
+
+    private IEnumerable<string> ValidatePassword(string password)
+    {
+        if (string.IsNullOrWhiteSpace(password))
+            yield return "Password is required";
+        else if (password.Length < 6)
+            yield return "Password must be at least 6 characters";
+        else if (!password.Any(char.IsUpper))
+            yield return "Password must contain at least one uppercase letter";
+        else if (!password.Any(char.IsLower))
+            yield return "Password must contain at least one lowercase letter";
+        else if (!password.Any(char.IsDigit))
+            yield return "Password must contain at least one number";
+        else if (!password.Any(ch => !char.IsLetterOrDigit(ch)))
+            yield return "Password must contain at least one special character";
+    }
+
+    private IEnumerable<string> ValidateConfirmPassword(string confirmPwd)
+    {
+        if (confirmPwd != _registerModel.Password)
+            yield return "Passwords do not match";
+    }
+
+    private async Task HandleRegister()
+    {
+        try
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                var createdUser = await UserService.CreateAsync(_registerModel);
+                Snackbar.Add("Registration successful! Please login.", Severity.Success);
+                NavigationManager.NavigateTo("/login");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Registration failed: {ex.Message}", Severity.Error);
+        }
+    }
+}

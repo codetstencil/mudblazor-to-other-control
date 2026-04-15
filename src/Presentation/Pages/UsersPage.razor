@@ -1,0 +1,231 @@
+@page "/users"
+@using Microsoft.AspNetCore.Authorization
+@using Application.DTOs
+@using Application.Common.Models
+@attribute [Authorize]
+@inject IUserService UserService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Users</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudPaper Class="pa-4">
+        <MudGrid>
+            <MudItem xs="6">
+                <MudText Typo="Typo.h5">Users</MudText>
+            </MudItem>
+            <MudItem xs="6" Class="d-flex justify-end">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="HandleNewClick"
+                           StartIcon="@Icons.Material.Filled.Add">
+                    New User
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+
+        <MudTextField @bind-Value="_searchTerm"
+                      Label="Search"
+                      Class="mt-4"
+                      Immediate="true"
+                      DebounceInterval="500"
+                      OnDebounceIntervalElapsed="@(async () => await HandleSearch(_searchTerm))"
+                      Placeholder="Search users..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" />
+
+        <MudTable Items="@_items"
+                  Dense="true"
+                  Hover="true"
+                  Bordered="true"
+                  Striped="true"
+                  Loading="@_isLoading"
+                  SortLabel="Sort by"
+                  T="UserDto"
+                  ServerData="@(new Func<TableState, CancellationToken, Task<TableData<UserDto>>>(ServerReload))"
+                  OnRowClick="HandleRowClick"
+                  RowStyleFunc="@((item, i) => "cursor-pointer")"
+                  @ref="_tableRef">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortLabel="username" T="UserDto">Username</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortLabel="email" T="UserDto">Email</MudTableSortLabel></MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Username">@context.Username</MudTd>
+                <MudTd DataLabel="Email">@context.Email</MudTd>
+                <MudTd>
+                    <MudStack Row="true">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Color="Color.Primary"
+                                       Size="Size.Small"
+                                       OnClick="@(() => HandleEditClick(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       Size="Size.Small"
+                                       OnClick="@(() => HandleDeleteClick(context))" />
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+            <NoRecordsContent>
+                <MudText>No users found</MudText>
+            </NoRecordsContent>
+            <LoadingContent>
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </LoadingContent>
+        </MudTable>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private IEnumerable<UserDto>? _items;
+    private string _searchTerm = "";
+    private bool _isLoading;
+    private MudTable<UserDto> _tableRef = null!;
+
+    private async Task<TableData<UserDto>> ServerReload(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _isLoading = true;
+
+            if (cancellationToken.IsCancellationRequested)
+                return new TableData<UserDto>();
+
+            var parameters = new QueryParameters
+                {
+                    PageNumber = state.Page + 1,
+                    PageSize = state.PageSize,
+                    SearchTerm = _searchTerm,
+                    SortColumn = state.SortLabel,
+                    IsDescending = state.SortDirection == SortDirection.Descending
+                };
+
+            var result = await UserService.GetPagedAsync(parameters);
+
+            return new TableData<UserDto>
+                {
+                    TotalItems = result.TotalCount,
+                    Items = result.Items ?? []
+                };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load users: {ex.Message}", Severity.Error);
+            return new TableData<UserDto>();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void HandleRowClick(TableRowClickEventArgs<UserDto> args)
+    {
+        if (args.Item == null) return;
+        _ = HandleEditClick(args.Item);
+    }
+
+    private async Task HandleSearch(string? value)
+    {
+        _searchTerm = value ?? "";
+        await _tableRef.ReloadServerData();
+    }
+
+    private async Task HandleDeleteClick(UserDto user)
+    {
+        if (string.IsNullOrEmpty(user.Id))
+        {
+            Snackbar.Add("Invalid user ID", Severity.Error);
+            return;
+        }
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+        var result = await DialogService.ShowMessageBox(
+            "Delete User",
+            $"Are you sure you want to delete '{user.Username}'?",
+            yesText: "Delete",
+            cancelText: "Cancel",
+            options: options);
+
+        if (result ?? false)
+        {
+            try
+            {
+                await UserService.DeleteAsync(user.Id);
+                await _tableRef.ReloadServerData();
+                Snackbar.Add("User deleted successfully", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to delete user: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task HandleNewClick()
+    {
+        var parameters = new DialogParameters
+        {
+            { "IsEditing", false },
+            { "User", null }
+        };
+        var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                CloseButton = true,
+            };
+
+        var dialog = await DialogService.ShowAsync<UserDialog>("New User", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                var userToSave = (UserDto)result.Data;
+                await UserService.CreateAsync(userToSave);
+                await _tableRef.ReloadServerData();
+                Snackbar.Add("User created successfully", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to create user: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task HandleEditClick(UserDto user)
+    {
+        var parameters = new DialogParameters
+        {
+            { "IsEditing", true },
+            { "User", user }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<UserDialog>("Edit User", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                var userToSave = (UserDto)result.Data;
+                await UserService.UpdateAsync(userToSave);
+                await _tableRef.ReloadServerData();
+                Snackbar.Add("User updated successfully", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to update user: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

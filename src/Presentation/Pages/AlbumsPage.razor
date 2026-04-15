@@ -1,0 +1,246 @@
+@page "/albums"
+@using Microsoft.AspNetCore.Authorization
+@using Application.DTOs
+@attribute [Authorize]
+<PageTitle>Album</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudPaper Class="pa-4">
+        <MudGrid>
+            <MudItem xs="6">
+                <MudText Typo="Typo.h5">Albums</MudText>
+            </MudItem>
+            <MudItem xs="6" Class="d-flex justify-end">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="async () => await HandleNewClick()"
+                           StartIcon="@Icons.Material.Filled.Add">
+                    New Album
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+
+        <MudTextField @bind-Value="_searchTerm"
+                      Label="Search"
+                      Class="mt-4"
+                      Immediate="true"
+                      DebounceInterval="500"
+                      OnDebounceIntervalElapsed="@(async () => await HandleSearch(_searchTerm))"
+                      Placeholder="Search albums..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" />
+
+    <div class="table-responsive">
+        <MudTable Items="@_items"
+                  Dense="true"
+                  Hover="true"
+                  Bordered="true"
+                  Striped="true"
+                  Loading="@_isLoading"
+                  SortLabel="Sort by"
+                  T="AlbumDto"
+                  ServerData="@(new Func<TableState, CancellationToken, Task<TableData<AlbumDto>>>(Reload))"
+                  OnRowClick="HandleRowClick"
+                  RowStyleFunc="@((item, i) => "cursor-pointer")"
+                  @ref="_tableRef">
+
+            <HeaderContent>
+                <MudTh>
+                <MudTableSortLabel SortLabel="Title" T="AlbumDto">
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudText>Title</MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Color="Color.Info" />
+                    </MudStack>
+                </MudTableSortLabel>
+                </MudTh>
+                <MudTh>
+                <MudTableSortLabel SortLabel="ArtistId" T="AlbumDto">
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudText>Artist </MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Color="Color.Info" />
+                    </MudStack>
+                </MudTableSortLabel>
+                </MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+
+            <RowTemplate>
+                <MudTd DataLabel="Title">@context.Title</MudTd>
+                <MudTd DataLabel="Artist ">@(_artists.FirstOrDefault(a => a.ArtistId == context.ArtistId)?.Name ?? string.Empty)</MudTd>
+
+                <MudTd>
+                    <MudStack Row="true">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Color="Color.Primary"
+                                       Size="Size.Small"
+                                       OnClick="@(() => HandleEditClick(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       Size="Size.Small"
+                                       OnClick="@(() => HandleDeleteClick(context))" />
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+            <NoRecordsContent>
+                <MudText>No albums found</MudText>
+            </NoRecordsContent>
+            <LoadingContent>
+                <MudText>Loading...</MudText>
+            </LoadingContent>
+        </MudTable>
+    </div>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private IEnumerable<AlbumDto>? _items;
+    private string _searchTerm = "";
+    private bool _isLoading;
+    private MudTable<AlbumDto> _tableRef = null!;
+    private List<ArtistDto> _artists = [];
+            
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadArtists();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to initialize: {ex.Message}", Severity.Error);
+        }
+    }
+
+            
+    private async Task LoadArtists()
+    {
+        _artists = (await ArtistService.GetAllAsync()).ToList();
+    }
+
+
+
+    private async Task<TableData<AlbumDto>> Reload(TableState state, CancellationToken cancellationToken)
+    {
+        return await TableHelpers.ServerReload<AlbumDto>(
+            state,
+            cancellationToken,
+            _searchTerm,
+            parameters => AlbumService.GetPagedAsync(parameters),
+            "Failed to load albums",
+            Snackbar,
+            isLoading => _isLoading = isLoading);
+    }
+    
+    //Click
+    private void HandleRowClick(TableRowClickEventArgs<AlbumDto> args)
+    {
+        if (args.Item == null) return;
+        _ = HandleEditClick(args.Item);
+    }
+
+    //Search
+    private async Task HandleSearch(string? value)
+    {
+        _searchTerm = value ?? "";
+        await _tableRef.ReloadServerData();
+    }
+
+    //Delete
+    private async Task HandleDeleteClick(AlbumDto album)
+    {
+        var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+        var result = await DialogService.ShowMessageBox(
+            "Delete Album",
+            $"Are you sure you want to delete '{album.AlbumId}'?",
+            yesText: "Delete",
+            cancelText: "Cancel",
+            options: options);
+
+        if (result ?? false)
+        {
+            try
+            {
+                await AlbumService.DeleteAsync(album.AlbumId);
+                await _tableRef.ReloadServerData();
+                Snackbar.Add("Album deleted successfully", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to delete album: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    //New
+    private async Task HandleNewClick()
+    {
+        var parameters = new DialogParameters
+        {
+            { "IsEditing", false },
+            { "Album", null },
+            { "Artists", _artists }
+
+
+        };
+
+
+        var options = new DialogOptions()
+            {
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                CloseButton = true,
+            };
+
+        var dialogRes = await (await DialogService.ShowAsync<AlbumDialog>("New Album", parameters, options)).Result;
+
+        if (!dialogRes.Canceled)
+        {
+            try
+            {
+                if (dialogRes.Data is AlbumDto albumToSave) 
+                    await AlbumService.CreateAsync(albumToSave);
+                await _tableRef.ReloadServerData();
+                Snackbar.Add("Album created successfully", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to create album: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    //Edit
+    private async Task HandleEditClick(AlbumDto album)
+    {
+        var parameters = new DialogParameters
+        {
+            { "IsEditing", true },
+            { "Album", album },
+            { "Artists", _artists }
+
+
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<AlbumDialog>("Edit Album", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                if (result.Data is AlbumDto albumToSave) 
+                    await AlbumService.UpdateAsync(albumToSave);
+                await _tableRef.ReloadServerData();
+                Snackbar.Add("Album updated successfully", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to update Album: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

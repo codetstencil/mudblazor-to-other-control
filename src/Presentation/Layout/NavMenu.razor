@@ -1,0 +1,121 @@
+@inject NavigationManager Navigation 
+@inject AuthenticationStateProvider AuthProvider 
+
+ <MudLayout>
+     <MudAppBar Elevation="1">
+         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
+         <MudSpacer />
+         @if (_isAuthenticated)
+         {
+             <MudButton StartIcon="@Icons.Material.Filled.Logout"
+                        Variant="Variant.Outlined"
+                        OnClick="LogoutAsync"
+                        Class="me-2 text-white border-white">
+                 Logout
+             </MudButton>
+         }
+         else
+         {
+             <MudButton StartIcon="@Icons.Material.Filled.Login"
+                        Variant="Variant.Outlined"
+                        Href="/login"
+                        Class="me-2 text-white border-white">
+                 Login
+             </MudButton>
+         }
+     </MudAppBar>
+     <MudDrawer @bind-Open="@_open" Elevation="1">
+         <MudDrawerHeader>
+             <MudText Typo="Typo.h6">CodeStencil Application</MudText>
+         </MudDrawerHeader>
+         <MudNavMenu>
+             <AuthorizeView>
+                 <Authorized>
+                     <div class="d-flex flex-column justify-between" >
+                         <!-- Top Navigation Items -->
+                         <div class="py-2">
+                             <div class="px-3 my-3">
+                                 <MudNavLink href="" Match="NavLinkMatch.All">
+                                     <MudIcon Icon="@Icons.Material.Filled.TableRows" Class="me-2" /> Home
+                                 </MudNavLink>
+                             </div>
+                             <div class="px-3 my-3">
+                                 <MudNavLink href="/albums">
+                                     <MudIcon Icon="@Icons.Material.Filled.TableView" Class="me-2" /> Album
+                                 </MudNavLink>
+                             </div>
+                             <div class="px-3 my-3">
+                                 <MudNavLink href="/artists">
+                                     <MudIcon Icon="@Icons.Material.Filled.TableView" Class="me-2" /> Artist
+                                 </MudNavLink>
+                             </div>
+                             <div class="px-3 my-3">
+                                 <MudNavLink href="/albumviews">
+                                     <MudIcon Icon="@Icons.Material.Filled.TableView" Class="me-2" /> Album view
+                                 </MudNavLink>
+                             </div>
+
+                         </div>
+
+                         <!-- Bottom Section -->
+                         <div class="mt-8">
+                             <MudDivider />
+                             <div class="px-3 my-3">
+                                 <MudNavLink href="users">
+                                     <MudIcon Icon="@Icons.Material.Filled.Person" Class="me-2" /> Users
+                                 </MudNavLink>
+                             </div>
+                             <div class="px-3 my-3">
+                                 <MudNavLink @onclick="LogoutAsync" style="cursor: pointer;">
+                                     <MudIcon Icon="@Icons.Material.Filled.Logout" Class="me-2" /> Logout
+                                 </MudNavLink>
+                             </div>
+                         </div>
+                     </div>
+                 </Authorized>
+
+                 <NotAuthorized>
+                     <div class="px-3 my-3">
+                         <MudNavLink href="/" Match="NavLinkMatch.All">
+                             <MudIcon Icon="@Icons.Material.Filled.TableRows" Class="me-2" /> Home
+                         </MudNavLink>
+                     </div>
+                     <div class=" px-3 my-3">
+                         <MudNavLink href="login">
+                             <MudIcon Icon="@Icons.Material.Filled.Login" Class="me-2" /> Login
+                         </MudNavLink>
+                     </div>
+                 </NotAuthorized>
+             </AuthorizeView>
+         </MudNavMenu>
+     </MudDrawer>
+
+     <MudMainContent Class="">
+     </MudMainContent>
+ </MudLayout>
+
+@code {
+    private bool _open = false;
+    private bool _isAuthenticated = false;
+    private void ToggleDrawer() => _open = !_open;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        _isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+
+        if (_isAuthenticated)
+        {
+            _open = true;
+        }
+    }
+
+    private async Task LogoutAsync()
+    {
+        if (AuthProvider is CustomAuthStateProvider customAuth)
+        {
+            await customAuth.MarkUserAsLoggedOut();
+        }
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}
