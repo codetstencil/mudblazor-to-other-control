@@ -25,8 +25,8 @@ This project uses **SQL Server** as the database. A `.bak` file is included in t
 If you encounter errors related to SQL Server version differences (e.g., version 16 vs. 15), see the image below;
 <img width="555" height="180" alt="image" src="https://github.com/user-attachments/assets/5546b27e-226e-4fdf-952e-fc6db92006d7" />
 
-1. Update your SQLServer to the required version (v16). This should resolve the issue, and the restore would work. If this doesn't, then check the second step below.
-2. Use **Docker** to spin up a SQL Server instance of the required version.
+1. Update your SQLServer to the required version (v16). This should resolve the issue, and the restore would work. If this doesn't, then check the step below.
+2. Use **Docker** to spin up a SQL Server v16 instance of the required version.
 3. Update the **connection string** in [appsettings.json](https://github.com/codetstencil/mudblazor-to-other-control/blob/main/src/Api/appsettings.json) to point to your SQL Server instance.
 
 Example connection string in `appsettings.json`:
