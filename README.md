@@ -2,6 +2,8 @@
 
 This is a simple application that allows users to manage **Artists**, **Albums**, and **Album Views** with full CRUD (Create, Read, Update, Delete) functionality.
 
+## The only change required is in the Presentation layer
+
 ---
 
 ## 🚀 Features
