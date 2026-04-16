@@ -2,6 +2,8 @@
 
 This is a simple application that allows users to manage **Artists**, **Albums**, and **Album Views** with full CRUD (Create, Read, Update, Delete) functionality.
 
+## The only change required is in the Presentation layer
+
 ---
 
 ## 🚀 Features
@@ -13,7 +15,7 @@ This is a simple application that allows users to manage **Artists**, **Albums**
 ---
 
 ## 🔑 Login Credentials
-The login credentials will be provided in this repository. Please check the attached documentation or configuration files for details.
+Click [login credentials](https://github.com/codetstencil/mudblazor-to-other-control/blob/main/AdminCredentials.txt) to get the login credentials.
 
 ---
 
@@ -28,5 +30,5 @@ If you encounter errors related to SQL Server version differences (e.g., version
 Example connection string in `appsettings.json`:
 ```json
 "ConnectionStrings": {
-  "DefaultConnection": ""
+  "DefaultConnection": "Data Source=YOUR LOCAL DB INSTANCE;Initial Catalog=Chinook;Integrated Security=SSPI;TrustServerCertificate=True;MultipleActiveResultSets=True;Connect Timeout=120;;"
 }
