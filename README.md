@@ -25,7 +25,7 @@ This project uses **SQL Server** as the database. A `.bak` file is included in t
 ### ⚠️ Version Compatibility
 If you encounter errors related to SQL Server version differences (e.g., version 16 vs. 15):
 1. Use **Docker** to spin up a SQL Server instance of the required version.
-2. Update the **connection string** in `appsettings.json` to point to your SQL Server instance.
+2. Update the **connection string** in [appsettings.json](https://github.com/codetstencil/mudblazor-to-other-control/blob/main/src/Api/appsettings.json) to point to your SQL Server instance.
 
 Example connection string in `appsettings.json`:
 ```json
